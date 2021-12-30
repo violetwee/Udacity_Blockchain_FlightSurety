@@ -129,8 +129,15 @@ contract FlightSuretyApp {
     /*                                       UTILITY FUNCTIONS                                  */
     /********************************************************************************************/
 
-    function isOperational() public view returns (bool) {
+    function isOperational() external view returns (bool) {
         return dataContract.isOperational();
+    }
+
+    // testing
+    function getTotalRegisteredAirlines() external view returns (uint256) {
+        uint256 totalRegisteredAirlines = dataContract
+            .getTotalRegisteredAirlines();
+        return totalRegisteredAirlines;
     }
 
     /********************************************************************************************/
