@@ -16,7 +16,7 @@ contract FlightSuretyData {
     struct Airline {
         bool isRegistered;
         bool isFunded;
-        uint256 fundsAmount;
+        uint256 funds;
     }
     mapping(address => Airline) private registeredAirlines; // track registered airlines, for multi-sig and airline ante
     uint256 public totalRegisteredAirlines = 0;
@@ -77,12 +77,34 @@ contract FlightSuretyData {
     }
 
     /**
-     * @dev Modifier that requires the the function caller to be an authorized account
+     * @dev Modifier that requires the function caller to be an authorized account
      */
     modifier requireIsCallerAuthorized() {
         require(
             authorizedContracts[msg.sender] == 1,
             "Caller is not authorized"
+        );
+        _;
+    }
+
+    /**
+     * @dev Modifier that requires the airline to be registered (may not be funded yet)
+     */
+    modifier requireAirlineIsRegistered(address airlineAddress) {
+        require(
+            registeredAirlines[airlineAddress].isRegistered == true,
+            "Caller is not a registered airline"
+        );
+        _;
+    }
+
+    /**
+     * @dev Modifier that requires the ariline to be funded
+     */
+    modifier requireAirlineIsFunded(address airlineAddress) {
+        require(
+            registeredAirlines[airlineAddress].isFunded == true,
+            "Caller's account is not funded yet"
         );
         _;
     }
@@ -138,23 +160,23 @@ contract FlightSuretyData {
     /**
      * @dev Add an airline to the registration queue
      *      Can only be called from FlightSuretyApp contract
-     *
+     *      Only funded airlines can be
      */
-    function registerAirline(address airlineAddress)
+    function registerAirline(address newAirlineAddress)
         external
         requireIsOperational
         requireIsCallerAuthorized
     {
         // Check that airline is not already registered
         require(
-            !registeredAirlines[airlineAddress].isRegistered,
+            !registeredAirlines[newAirlineAddress].isRegistered,
             "Airline is already registered"
         );
 
-        registeredAirlines[airlineAddress] = Airline({
+        registeredAirlines[newAirlineAddress] = Airline({
             isRegistered: true,
             isFunded: false,
-            fundsAmount: 0
+            funds: 0
         });
         ++totalRegisteredAirlines;
     }
@@ -165,10 +187,37 @@ contract FlightSuretyData {
      */
     function isRegisteredAirline(address airlineAddress)
         external
+        view
         requireIsOperational
         returns (bool)
     {
         return registeredAirlines[airlineAddress].isRegistered;
+    }
+
+    /**
+     * @dev Check an airline's funding status
+     *
+     */
+    function isFundedAirline(address airlineAddress)
+        external
+        view
+        requireIsOperational
+        returns (bool)
+    {
+        return registeredAirlines[airlineAddress].isFunded;
+    }
+
+    /**
+     * @dev Check an airline's funding amount
+     *
+     */
+    function getFundsForAirline(address airlineAddress)
+        external
+        view
+        requireIsOperational
+        returns (uint256)
+    {
+        return registeredAirlines[airlineAddress].funds;
     }
 
     /**
@@ -177,6 +226,7 @@ contract FlightSuretyData {
      */
     function getTotalRegisteredAirlines()
         external
+        view
         requireIsOperational
         returns (uint256)
     {
@@ -207,7 +257,18 @@ contract FlightSuretyData {
      *      resulting in insurance payouts, the contract should be self-sustaining
      *
      */
-    function fund() public payable {}
+    function fund(address airlineAddress, uint256 amount)
+        external
+        payable
+        requireIsOperational
+    {
+        require(
+            registeredAirlines[airlineAddress].isRegistered,
+            "Airline is not registered yet"
+        );
+        registeredAirlines[airlineAddress].isFunded = true;
+        registeredAirlines[airlineAddress].funds = amount;
+    }
 
     function getFlightKey(
         address airline,
@@ -221,7 +282,5 @@ contract FlightSuretyData {
      * @dev Fallback function for funding smart contract.
      *
      */
-    function() external payable {
-        fund();
-    }
+    function() external payable {}
 }

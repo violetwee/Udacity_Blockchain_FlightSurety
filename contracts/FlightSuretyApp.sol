@@ -95,8 +95,19 @@ contract FlightSuretyApp {
      */
     modifier requireRegisteredAirline() {
         require(
-            dataContract.isRegisteredAirline(msg.sender),
+            dataContract.isRegisteredAirline(msg.sender) == true,
             "Caller is not a registered airline"
+        );
+        _;
+    }
+
+    /**
+     * @dev Modifier that requires a "registered airline" account to be the function caller
+     */
+    modifier requireFundedAirline() {
+        require(
+            dataContract.isFundedAirline(msg.sender) == true,
+            "Caller is not a funded airline"
         );
         _;
     }
@@ -118,8 +129,8 @@ contract FlightSuretyApp {
     /*                                       UTILITY FUNCTIONS                                  */
     /********************************************************************************************/
 
-    function isOperational() public pure returns (bool) {
-        return true; // Modify to call data contract's status
+    function isOperational() public view returns (bool) {
+        return dataContract.isOperational();
     }
 
     /********************************************************************************************/
@@ -134,6 +145,7 @@ contract FlightSuretyApp {
         external
         requireIsOperational
         requireRegisteredAirline
+        requireFundedAirline
         returns (bool success, uint256 votes)
     {
         // Check if airline is within NON_APPROVAL_AIRLINE_THRESHOLD=4
@@ -141,7 +153,7 @@ contract FlightSuretyApp {
         uint256 totalRegisteredAirlines = dataContract
             .getTotalRegisteredAirlines();
 
-        if (totalRegisteredAirlines <= NON_APPROVAL_AIRLINE_THRESHOLD) {
+        if (totalRegisteredAirlines < NON_APPROVAL_AIRLINE_THRESHOLD) {
             dataContract.registerAirline(newAirlineAddress);
         } else {
             // Else, require 50% multi-sig consensus
@@ -161,11 +173,27 @@ contract FlightSuretyApp {
             ) {
                 dataContract.registerAirline(newAirlineAddress);
                 multiCalls = new address[](0); // reset array
-            }
+            } else return (false, multiCalls.length);
         }
         emit AirlineRegistered(newAirlineAddress);
 
         return (true, multiCalls.length);
+    }
+
+    /**
+     * @dev Add funds to an airline's account
+     *
+     */
+    function fund() external payable requireIsOperational {
+        require(
+            msg.value >= AIRLINE_REGISTRATION_FEE,
+            "Insufficient funds. 10 ether required"
+        );
+
+        address(uint160(address(dataContract))).transfer(msg.value);
+        dataContract.fund(msg.sender, msg.value);
+
+        emit AirlineFunded(msg.sender);
     }
 
     /**
@@ -379,11 +407,27 @@ contract FlightSuretyDataContract {
 
     function setOperatingStatus(bool mode) external;
 
-    function registerAirline(address airlineAddress) external;
+    function registerAirline(address newAirlineAddress) external;
 
     function isRegisteredAirline(address airlineAddress)
         external
+        view
         returns (bool);
 
-    function getTotalRegisteredAirlines() external returns (uint256);
+    function isFundedAirline(address airlineAddress)
+        external
+        view
+        returns (bool);
+
+    function getFundsForAirline(address airlineAddress)
+        external
+        view
+        returns (uint256);
+
+    function getTotalRegisteredAirlines() external view returns (uint256);
+
+    function fund(address airlineAddress, uint256 amount) external payable;
+
+    // Passengers
+    function buy() external payable;
 }
