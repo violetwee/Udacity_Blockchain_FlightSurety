@@ -12,6 +12,7 @@ contract FlightSuretyData {
     address private contractOwner; // Account used to deploy contract
     bool private operational = true; // Blocks all state changes throughout the contract if false
     mapping(address => uint256) private authorizedContracts;
+    uint8 private constant PAYOUT_PERCENTAGE = 150;
 
     // Flight status codees
     uint8 private constant STATUS_CODE_UNKNOWN = 0;
@@ -44,7 +45,6 @@ contract FlightSuretyData {
         string airlineName;
         uint8 statusCode;
         uint256 timestamp;
-        bytes32 flightKey;
         string flightNo;
         string departureFrom;
         string arrivalAt;
@@ -272,17 +272,11 @@ contract FlightSuretyData {
         bytes32 flightKey,
         uint256 cost
     ) external payable requireIsOperational {
-        // get airline based on flightKey
-        Flight flight = flights[flightKey];
-
-        // pay airline for the insurance
-        address(uint160(flight.airline)).transfer(cost);
-        flight.funds += cost;
-
-        Insurance insurance = Insurance({
+        Insurance memory insurance = Insurance({
             passenger: passenger,
             insuranceCost: cost,
-            payoutPercentage: 150
+            payoutPercentage: PAYOUT_PERCENTAGE,
+            isPayoutCredited: false
         });
         flightKeyInsurance[flightKey].push(insurance);
     }
@@ -296,7 +290,11 @@ contract FlightSuretyData {
         requireIsCallerAuthorized
     {
         // loop through all insurees and perform credit
-        for (uint256 idx = 0; idx < flightKeyInsurance[flightKey]; idx++) {
+        for (
+            uint256 idx = 0;
+            idx < flightKeyInsurance[flightKey].length;
+            idx++
+        ) {
             Insurance memory insurance = flightKeyInsurance[flightKey][idx];
 
             if (!insurance.isPayoutCredited) {
@@ -317,7 +315,8 @@ contract FlightSuretyData {
      *
      */
     function pay(address passenger, bytes32 flightKey)
-        external payable
+        external
+        payable
         requireIsOperational
         requireIsCallerAuthorized
     {
@@ -326,14 +325,56 @@ contract FlightSuretyData {
             "Passenger do not have credits to withdraw"
         );
 
-        Flight flight = flights[flightKey];
         uint256 credits = passengerCredits[passenger];
         passengerCredits[passenger] = 0;
-        address(uint160(passenger)).transfer(amount, { from: flight.airline });
+        address(uint160(passenger)).transfer(credits);
     }
 
     /*                                    FLIGHT FUNCTIONS                                      */
     /********************************************************************************************/
+
+    /**
+     *  @dev Register a new flight
+     *
+     */
+    function registerFlight(
+        bytes32 flightKey,
+        address airlineAddress,
+        string airlineName,
+        string flightNo,
+        string departureFrom,
+        string arrivalAt,
+        uint256 timestamp
+    )
+        external
+        requireIsOperational
+        requireAirlineIsRegistered(airlineAddress)
+        requireAirlineIsFunded(airlineAddress)
+    {
+        require(
+            flights[flightKey].airline == address(0),
+            "Flight has already been registered"
+        );
+
+        flights[flightKey] = Flight({
+            airline: airlineAddress,
+            airlineName: airlineName,
+            statusCode: STATUS_CODE_UNKNOWN,
+            timestamp: timestamp,
+            flightNo: flightNo,
+            departureFrom: departureFrom,
+            arrivalAt: arrivalAt
+        });
+    }
+
+    function isRegisteredFlight(bytes32 flightKey)
+        external
+        view
+        requireIsOperational
+        returns (bool)
+    {
+        return flights[flightKey].airline != address(0);
+    }
 
     function getFlightKey(
         address airline,
