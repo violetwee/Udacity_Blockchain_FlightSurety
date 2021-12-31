@@ -13,6 +13,14 @@ contract FlightSuretyData {
     bool private operational = true; // Blocks all state changes throughout the contract if false
     mapping(address => uint256) private authorizedContracts;
 
+    // Flight status codees
+    uint8 private constant STATUS_CODE_UNKNOWN = 0;
+    uint8 private constant STATUS_CODE_ON_TIME = 10;
+    uint8 private constant STATUS_CODE_LATE_AIRLINE = 20;
+    uint8 private constant STATUS_CODE_LATE_WEATHER = 30;
+    uint8 private constant STATUS_CODE_LATE_TECHNICAL = 40;
+    uint8 private constant STATUS_CODE_LATE_OTHER = 50;
+
     struct Airline {
         bool isRegistered;
         bool isFunded;
@@ -21,17 +29,19 @@ contract FlightSuretyData {
     mapping(address => Airline) private registeredAirlines; // track registered airlines, for multi-sig and airline ante
     uint256 public totalRegisteredAirlines = 0;
 
-    // Insurance claims from passengers
+    // Insurance from passengers
     struct Insurance {
         address passenger;
         uint256 insuranceCost;
         uint256 payoutPercentage;
+        bool isPayoutCredited;
     }
-    mapping(bytes32 => Insurance[]) public flightKeyInsurance; // flights that passengers have bought insurance
-    mapping(address => uint256) public insurancePayouts; // passenger => insurance payouts in eth
+    mapping(bytes32 => Insurance[]) public flightKeyInsurance; // flightKey=>Insurance[], flights that passengers have bought insurance
+    mapping(address => uint256) public passengerCredits; // passenger => insurance payouts in eth, pending withdrawal
 
     struct Flight {
         address airline;
+        string airlineName;
         uint8 statusCode;
         uint256 timestamp;
         bytes32 flightKey;
@@ -39,7 +49,7 @@ contract FlightSuretyData {
         string departureFrom;
         string arrivalAt;
     }
-    mapping(address => Flight) public flights;
+    mapping(bytes32 => Flight) public flights; // flightKey => Flight
 
     /**
      * @dev Constructor
@@ -233,25 +243,6 @@ contract FlightSuretyData {
         return totalRegisteredAirlines;
     }
 
-    /*                                    PASSENGER FUNCTIONS                                     */
-    /********************************************************************************************/
-    /**
-     * @dev Buy insurance for a flight
-     *
-     */
-    function buy() external payable {}
-
-    /**
-     *  @dev Credits payouts to insurees
-     */
-    function creditInsurees() external pure {}
-
-    /**
-     *  @dev Transfers eligible payout funds to insuree
-     *
-     */
-    function pay() external pure {}
-
     /**
      * @dev Initial funding for the insurance. Unless there are too many delayed flights
      *      resulting in insurance payouts, the contract should be self-sustaining
@@ -270,12 +261,105 @@ contract FlightSuretyData {
         registeredAirlines[airlineAddress].funds = amount;
     }
 
+    /*                                    PASSENGER FUNCTIONS                                   */
+    /********************************************************************************************/
+    /**
+     * @dev Buy insurance for a flight
+     *
+     */
+    function buy(
+        address passenger,
+        bytes32 flightKey,
+        uint256 cost
+    ) external payable requireIsOperational {
+        // get airline based on flightKey
+        Flight flight = flights[flightKey];
+
+        // pay airline for the insurance
+        address(uint160(flight.airline)).transfer(cost);
+        flight.funds += cost;
+
+        Insurance insurance = Insurance({
+            passenger: passenger,
+            insuranceCost: cost,
+            payoutPercentage: 150
+        });
+        flightKeyInsurance[flightKey].push(insurance);
+    }
+
+    /**
+     *  @dev Credits payouts to insurees
+     */
+    function creditInsurees(bytes32 flightKey)
+        internal
+        requireIsOperational
+        requireIsCallerAuthorized
+    {
+        // loop through all insurees and perform credit
+        for (uint256 idx = 0; idx < flightKeyInsurance[flightKey]; idx++) {
+            Insurance memory insurance = flightKeyInsurance[flightKey][idx];
+
+            if (!insurance.isPayoutCredited) {
+                insurance.isPayoutCredited = true;
+                // calculate payout amount
+                uint256 amount = insurance
+                    .insuranceCost
+                    .mul(insurance.payoutPercentage)
+                    .div(100);
+
+                passengerCredits[insurance.passenger] += amount;
+            }
+        }
+    }
+
+    /**
+     *  @dev Transfers eligible payout funds to insuree
+     *
+     */
+    function pay(address passenger, bytes32 flightKey)
+        external payable
+        requireIsOperational
+        requireIsCallerAuthorized
+    {
+        require(
+            passengerCredits[passenger] > 0,
+            "Passenger do not have credits to withdraw"
+        );
+
+        Flight flight = flights[flightKey];
+        uint256 credits = passengerCredits[passenger];
+        passengerCredits[passenger] = 0;
+        address(uint160(passenger)).transfer(amount, { from: flight.airline });
+    }
+
+    /*                                    FLIGHT FUNCTIONS                                      */
+    /********************************************************************************************/
+
     function getFlightKey(
         address airline,
         string memory flight,
         uint256 timestamp
     ) internal pure returns (bytes32) {
         return keccak256(abi.encodePacked(airline, flight, timestamp));
+    }
+
+    /**
+     * @dev Save flight status info
+     *
+     */
+    function processFlightStatus(bytes32 flightKey, uint8 statusCode)
+        external
+        requireIsOperational
+        requireIsCallerAuthorized
+    {
+        if (flights[flightKey].statusCode == STATUS_CODE_UNKNOWN) {
+            flights[flightKey].statusCode = statusCode;
+
+            if (statusCode == STATUS_CODE_LATE_AIRLINE) {
+                // airline is late, credit insured amount to passengers
+                creditInsurees(flightKey);
+            }
+        }
     }
 
     /**

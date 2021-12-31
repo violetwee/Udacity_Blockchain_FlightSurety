@@ -133,13 +133,6 @@ contract FlightSuretyApp {
         return dataContract.isOperational();
     }
 
-    // testing
-    function getTotalRegisteredAirlines() external view returns (uint256) {
-        uint256 totalRegisteredAirlines = dataContract
-            .getTotalRegisteredAirlines();
-        return totalRegisteredAirlines;
-    }
-
     /********************************************************************************************/
     /*                                     SMART CONTRACT FUNCTIONS                             */
     /********************************************************************************************/
@@ -211,14 +204,12 @@ contract FlightSuretyApp {
 
     /**
      * @dev Called after oracle has updated flight status
+        Update data contract
      *
      */
-    function processFlightStatus(
-        address airline,
-        string memory flight,
-        uint256 timestamp,
-        uint8 statusCode
-    ) internal pure {}
+    function processFlightStatus(bytes32 flightKey, uint8 statusCode) internal {
+        dataContract.processFlightStatus(flightKey, statusCode);
+    }
 
     // Generate a request for oracles to fetch flight information
     function fetchFlightStatus(
