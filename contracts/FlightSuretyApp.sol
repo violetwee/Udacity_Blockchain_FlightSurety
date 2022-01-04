@@ -50,7 +50,7 @@ contract FlightSuretyApp {
 
     event AirlineRegistered(address airline);
     event AirlineFunded(address airline);
-    event FlightAdded(bytes32 flightKey, string flightNo);
+    event FlightAdded(string flightNo);
     event FlightStatusChanged(bytes32 flightKey, uint8 statusCode);
     event BuyInsuranceForFlight(
         address passengerAddress,
@@ -207,11 +207,8 @@ contract FlightSuretyApp {
         string departureFrom,
         string arrivalAt,
         uint256 timestamp
-    ) external requireIsOperational {
-        bytes32 flightKey = getFlightKey(airlineAddress, flightNo, timestamp);
-
-        dataContract.registerFlight(
-            flightKey,
+    ) external requireIsOperational returns (bool) {
+        bool isRegistered = dataContract.registerFlight(
             airlineAddress,
             airlineName,
             flightNo,
@@ -220,16 +217,8 @@ contract FlightSuretyApp {
             timestamp
         );
 
-        emit FlightAdded(flightKey, flightNo);
-    }
-
-    function isRegisteredFlight(
-        address airline,
-        string flightNo,
-        uint256 timestamp
-    ) external view requireIsOperational returns (bool) {
-        bytes32 flightKey = getFlightKey(airline, flightNo, timestamp);
-        dataContract.isRegisteredFlight(flightKey);
+        emit FlightAdded(flightNo);
+        return isRegistered;
     }
 
     /**
@@ -265,6 +254,15 @@ contract FlightSuretyApp {
         });
 
         emit OracleRequest(index, airline, flight, timestamp);
+    }
+
+    function buyInsurance(
+        address airline,
+        string flightNo,
+        uint256 timestamp
+    ) external payable requireIsOperational returns (address) {
+        bytes32 flightKey = getFlightKey(airline, flightNo, timestamp);
+        return dataContract.buy(msg.sender, flightKey, msg.value);
     }
 
     // region ORACLE MANAGEMENT
@@ -462,21 +460,22 @@ contract FlightSuretyDataContract {
 
     // Flights
     function registerFlight(
-        bytes32 flightKey,
         address airlineAddress,
         string airlineName,
         string flightNo,
         string departureFrom,
         string arrivalAt,
         uint256 timestamp
-    ) external;
-
-    function isRegisteredFlight(bytes32 flightKey) external view returns (bool);
+    ) external returns (bool);
 
     function processFlightStatus(bytes32 flightKey, uint8 statusCode) external;
 
     function fund(address airlineAddress, uint256 amount) external payable;
 
     // Passengers
-    function buy() external payable;
+    function buy(
+        address passenger,
+        bytes32 flightKey,
+        uint256 cost
+    ) external payable returns (address);
 }

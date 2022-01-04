@@ -48,6 +48,7 @@ contract FlightSuretyData {
         string flightNo;
         string departureFrom;
         string arrivalAt;
+        bool isRegistered;
     }
     mapping(bytes32 => Flight) public flights; // flightKey => Flight
 
@@ -271,7 +272,7 @@ contract FlightSuretyData {
         address passenger,
         bytes32 flightKey,
         uint256 cost
-    ) external payable requireIsOperational {
+    ) external payable requireIsOperational returns (address) {
         Insurance memory insurance = Insurance({
             passenger: passenger,
             insuranceCost: cost,
@@ -279,6 +280,7 @@ contract FlightSuretyData {
             isPayoutCredited: false
         });
         flightKeyInsurance[flightKey].push(insurance);
+        return insurance.passenger;
     }
 
     /**
@@ -338,7 +340,6 @@ contract FlightSuretyData {
      *
      */
     function registerFlight(
-        bytes32 flightKey,
         address airlineAddress,
         string airlineName,
         string flightNo,
@@ -350,30 +351,27 @@ contract FlightSuretyData {
         requireIsOperational
         requireAirlineIsRegistered(airlineAddress)
         requireAirlineIsFunded(airlineAddress)
+        returns (bool)
     {
         require(
-            flights[flightKey].airline == address(0),
+            !flights[flightKey].isRegistered,
             "Flight has already been registered"
         );
+
+        bytes32 flightKey = getFlightKey(airlineAddress, flightNo, timestamp);
 
         flights[flightKey] = Flight({
             airline: airlineAddress,
             airlineName: airlineName,
-            statusCode: STATUS_CODE_UNKNOWN,
+            statusCode: 0,
             timestamp: timestamp,
             flightNo: flightNo,
             departureFrom: departureFrom,
-            arrivalAt: arrivalAt
+            arrivalAt: arrivalAt,
+            isRegistered: true
         });
-    }
 
-    function isRegisteredFlight(bytes32 flightKey)
-        external
-        view
-        requireIsOperational
-        returns (bool)
-    {
-        return flights[flightKey].airline != address(0);
+        return flights[flightKey].isRegistered;
     }
 
     function getFlightKey(

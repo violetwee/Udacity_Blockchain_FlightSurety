@@ -16,6 +16,7 @@ module.exports = {
       confirmations: 0,
       timeoutBlocks: 50,
       skipDryRun: true,
+      websockets: true
     }
   },
   compilers: {
