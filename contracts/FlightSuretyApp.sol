@@ -43,6 +43,7 @@ contract FlightSuretyApp {
 
     // Fee to be paid by airline after registration
     uint256 public constant AIRLINE_REGISTRATION_FEE = 10 ether;
+    uint256 public constant MAX_PASSENGER_INSURANCE_FEE = 1 ether;
 
     /********************************************************************************************/
     /*                                       EVENT DEFINITIONS                                  */
@@ -201,16 +202,14 @@ contract FlightSuretyApp {
      *
      */
     function registerFlight(
-        address airlineAddress,
-        string airlineName,
+        address airline,
         string flightNo,
         string departureFrom,
         string arrivalAt,
         uint256 timestamp
-    ) external requireIsOperational returns (bool) {
-        bool isRegistered = dataContract.registerFlight(
-            airlineAddress,
-            airlineName,
+    ) external requireIsOperational returns (bytes32 key, bool isRegistered) {
+        (key, isRegistered) = dataContract.registerFlight(
+            airline,
             flightNo,
             departureFrom,
             arrivalAt,
@@ -218,7 +217,7 @@ contract FlightSuretyApp {
         );
 
         emit FlightAdded(flightNo);
-        return isRegistered;
+        return (key, isRegistered);
     }
 
     /**
@@ -260,9 +259,16 @@ contract FlightSuretyApp {
         address airline,
         string flightNo,
         uint256 timestamp
-    ) external payable requireIsOperational returns (address) {
+    ) external payable requireIsOperational {
+        require(msg.value > 0, "Insurance fee must be greater than zero");
+
+        require(
+            msg.value <= MAX_PASSENGER_INSURANCE_FEE,
+            "Insurance fee exceeds 1 ether"
+        );
+
         bytes32 flightKey = getFlightKey(airline, flightNo, timestamp);
-        return dataContract.buy(msg.sender, flightKey, msg.value);
+        dataContract.buy(msg.sender, flightKey, msg.value);
     }
 
     // region ORACLE MANAGEMENT
@@ -460,13 +466,12 @@ contract FlightSuretyDataContract {
 
     // Flights
     function registerFlight(
-        address airlineAddress,
-        string airlineName,
+        address airline,
         string flightNo,
         string departureFrom,
         string arrivalAt,
         uint256 timestamp
-    ) external returns (bool);
+    ) external returns (bytes32, bool);
 
     function processFlightStatus(bytes32 flightKey, uint8 statusCode) external;
 
@@ -477,5 +482,8 @@ contract FlightSuretyDataContract {
         address passenger,
         bytes32 flightKey,
         uint256 cost
-    ) external payable returns (address);
+    ) external payable;
+
+    // withdraw credits from account
+    function pay(address passenger) external payable;
 }

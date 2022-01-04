@@ -13,9 +13,9 @@ module.exports = {
       port: 7545,
       network_id: '*',
       gas: 4600000,
-      confirmations: 0,
-      timeoutBlocks: 50,
-      skipDryRun: true,
+      // confirmations: 0,
+      // timeoutBlocks: 50,
+      // skipDryRun: true,
       websockets: true
     }
   },

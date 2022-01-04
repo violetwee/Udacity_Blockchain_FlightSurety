@@ -37,12 +37,11 @@ contract FlightSuretyData {
         uint256 payoutPercentage;
         bool isPayoutCredited;
     }
-    mapping(bytes32 => Insurance[]) public flightKeyInsurance; // flightKey=>Insurance[], flights that passengers have bought insurance
+    mapping(bytes32 => Insurance[]) public flightKeyInsurance; // key=>Insurance[], flights that passengers have bought insurance
     mapping(address => uint256) public passengerCredits; // passenger => insurance payouts in eth, pending withdrawal
 
     struct Flight {
         address airline;
-        string airlineName;
         uint8 statusCode;
         uint256 timestamp;
         string flightNo;
@@ -50,7 +49,8 @@ contract FlightSuretyData {
         string arrivalAt;
         bool isRegistered;
     }
-    mapping(bytes32 => Flight) public flights; // flightKey => Flight
+    mapping(bytes32 => Flight) public flights; // key => Flight
+    uint256 public totalRegisteredFlights = 0;
 
     /**
      * @dev Constructor
@@ -116,6 +116,17 @@ contract FlightSuretyData {
         require(
             registeredAirlines[airlineAddress].isFunded == true,
             "Caller's account is not funded yet"
+        );
+        _;
+    }
+
+    /**
+     * @dev Modifier that requires the flight to be registered
+     */
+    modifier requireRegisteredFlight(bytes32 key) {
+        require(
+            flights[key].isRegistered == true,
+            "Flight is not registered yet"
         );
         _;
     }
@@ -270,34 +281,25 @@ contract FlightSuretyData {
      */
     function buy(
         address passenger,
-        bytes32 flightKey,
+        bytes32 key,
         uint256 cost
-    ) external payable requireIsOperational returns (address) {
+    ) external payable requireIsOperational {
         Insurance memory insurance = Insurance({
             passenger: passenger,
             insuranceCost: cost,
             payoutPercentage: PAYOUT_PERCENTAGE,
             isPayoutCredited: false
         });
-        flightKeyInsurance[flightKey].push(insurance);
-        return insurance.passenger;
+        flightKeyInsurance[key].push(insurance);
     }
 
     /**
      *  @dev Credits payouts to insurees
      */
-    function creditInsurees(bytes32 flightKey)
-        internal
-        requireIsOperational
-        requireIsCallerAuthorized
-    {
+    function creditInsurees(bytes32 key) internal requireIsOperational {
         // loop through all insurees and perform credit
-        for (
-            uint256 idx = 0;
-            idx < flightKeyInsurance[flightKey].length;
-            idx++
-        ) {
-            Insurance memory insurance = flightKeyInsurance[flightKey][idx];
+        for (uint256 idx = 0; idx < flightKeyInsurance[key].length; idx++) {
+            Insurance memory insurance = flightKeyInsurance[key][idx];
 
             if (!insurance.isPayoutCredited) {
                 insurance.isPayoutCredited = true;
@@ -312,16 +314,19 @@ contract FlightSuretyData {
         }
     }
 
+    function getPassengerCredits(address passenger)
+        external
+        view
+        returns (uint256)
+    {
+        return passengerCredits[passenger];
+    }
+
     /**
      *  @dev Transfers eligible payout funds to insuree
      *
      */
-    function pay(address passenger, bytes32 flightKey)
-        external
-        payable
-        requireIsOperational
-        requireIsCallerAuthorized
-    {
+    function pay(address passenger) external payable requireIsOperational {
         require(
             passengerCredits[passenger] > 0,
             "Passenger do not have credits to withdraw"
@@ -340,8 +345,7 @@ contract FlightSuretyData {
      *
      */
     function registerFlight(
-        address airlineAddress,
-        string airlineName,
+        address airline,
         string flightNo,
         string departureFrom,
         string arrivalAt,
@@ -349,29 +353,40 @@ contract FlightSuretyData {
     )
         external
         requireIsOperational
-        requireAirlineIsRegistered(airlineAddress)
-        requireAirlineIsFunded(airlineAddress)
-        returns (bool)
+        requireAirlineIsRegistered(airline)
+        requireAirlineIsFunded(airline)
+        returns (bytes32, bool)
     {
         require(
-            !flights[flightKey].isRegistered,
+            flights[key].airline == address(0),
             "Flight has already been registered"
         );
 
-        bytes32 flightKey = getFlightKey(airlineAddress, flightNo, timestamp);
+        bytes32 key = getFlightKey(airline, flightNo, timestamp);
 
-        flights[flightKey] = Flight({
-            airline: airlineAddress,
-            airlineName: airlineName,
-            statusCode: 0,
+        // Flight memory newFlight
+        flights[key] = Flight({
+            airline: airline,
+            statusCode: STATUS_CODE_UNKNOWN,
             timestamp: timestamp,
             flightNo: flightNo,
             departureFrom: departureFrom,
             arrivalAt: arrivalAt,
             isRegistered: true
         });
+        // flights[key] = newFlight;
+        ++totalRegisteredFlights;
+        return (key, flights[key].isRegistered);
+    }
 
-        return flights[flightKey].isRegistered;
+    function isRegisteredFlight(
+        address airline,
+        string flightNo,
+        uint256 timestamp
+    ) external view requireIsOperational returns (bool) {
+        bytes32 key = getFlightKey(airline, flightNo, timestamp);
+        // return key;
+        return flights[key].isRegistered;
     }
 
     function getFlightKey(
@@ -386,17 +401,16 @@ contract FlightSuretyData {
      * @dev Save flight status info
      *
      */
-    function processFlightStatus(bytes32 flightKey, uint8 statusCode)
+    function processFlightStatus(bytes32 key, uint8 statusCode)
         external
         requireIsOperational
-        requireIsCallerAuthorized
     {
-        if (flights[flightKey].statusCode == STATUS_CODE_UNKNOWN) {
-            flights[flightKey].statusCode = statusCode;
+        if (flights[key].statusCode == STATUS_CODE_UNKNOWN) {
+            flights[key].statusCode = statusCode;
 
             if (statusCode == STATUS_CODE_LATE_AIRLINE) {
                 // airline is late, credit insured amount to passengers
-                creditInsurees(flightKey);
+                creditInsurees(key);
             }
         }
     }
