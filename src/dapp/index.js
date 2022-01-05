@@ -6,30 +6,72 @@ import './flightsurety.css';
 
 (async () => {
 
+
+
     let result = null;
 
     let contract = new Contract('localhost', () => {
+        let displayWrapper = DOM.elid("display-wrapper");
 
-        // Read transaction
-        contract.isOperational((error, result) => {
-            display('Operational Status', 'Check if contract is operational', [{ label: 'Operational Status', error: error, value: result }]);
+        let topNav = ["contract", "airline", "passenger", "credits"].map(item => {
+            return DOM.elid(item);
+        });
+
+        let navItemContainer = ["contract-container", "airline-container", "passenger-container", "credits-container"].map(item => {
+            return DOM.elid(item);
+        });
+
+        // add click listener for each nav item
+        topNav.forEach((navItem, index, arr) => {
+            navItem.addEventListener("click", () => {
+                arr.forEach((item, idx, array) => {
+                    item.classList.remove("active");
+                    navItemContainer[idx].style.display = "none";// toggle show/hide container
+                });
+                navItem.classList.add("active");
+                navItemContainer[index].style.display = "block";
+                displayWrapper.innerHTML = "";
+            });
         });
 
 
+
+        // Contract > Check operational status of contract
+        DOM.elid("contract").addEventListener("click", async () => {
+            contract.isOperational((error, result) => {
+                display('Operational Status', 'Check if contract is operational', [{ label: 'Operational Status', error: error, value: result }], 'contract-container');
+            });
+        });
+        DOM.elid("contract").click();
+
+
+        // For Airlines > Register flights
+
+
+        // For Passengers > Buy insurance
+
+        // For Passengers > Submit oracle
         // User-submitted transaction
         DOM.elid('submit-oracle').addEventListener('click', () => {
-            let flight = DOM.elid('flight-number').value;
+            console.log('submit oracle');
+            let flight = DOM.elid('cfs-flight-no').value;
             // Write transaction
             contract.fetchFlightStatus(flight, (error, result) => {
-                display('Oracles', 'Trigger oracles', [{ label: 'Fetch Flight Status', error: error, value: result.flight + ' ' + result.timestamp }]);
+                display('Oracles', 'Trigger oracles', [{ label: 'Fetch Flight Status', error: error, value: result.flight + ' ' + result.timestamp }], 'passenger-container');
             });
         })
+
+        // For Passengers > Check credit balance
+
+        // For Passengers > Withdraw credit balance
+
     });
 })();
 
 
-function display(title, description, results) {
-    let displayDiv = DOM.elid("display-wrapper");
+function display(title, description, results, container) {
+    let containerDiv = DOM.elid(container);
+    let displayDiv = containerDiv.getElementsByTagName("div")[2];
     let section = DOM.section();
     section.appendChild(DOM.h2(title));
     section.appendChild(DOM.h5(description));
@@ -40,6 +82,7 @@ function display(title, description, results) {
         section.appendChild(row);
     })
     displayDiv.append(section);
+    displayDiv.style.display = 'block';
 
 }
 

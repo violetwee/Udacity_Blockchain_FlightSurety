@@ -1,33 +1,173 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1, shrink-to-fit=no"
+		/>
+		<title>FlightSurety</title>
+		<link
+			href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.1.1/css/bootstrap.min.css"
+			rel="stylesheet"
+		/>
+		<link rel="icon" type="image/x-icon" href="favicon.ico" />
+	</head>
 
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>FlightSurety</title>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.1.1/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="icon" type="image/x-icon" href="favicon.ico">
-</head>
+	<body>
+		<nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
+			<!-- https://getbootstrap.com/docs/4.1/components/navbar/ -->
+			<a class="navbar-brand" href="#">FlightSurety</a>
+			<button
+				class="navbar-toggler"
+				type="button"
+				data-toggle="collapse"
+				data-target="#navbarsExampleDefault"
+				aria-controls="navbarsExampleDefault"
+				aria-expanded="false"
+				aria-label="Toggle navigation"
+			>
+				<span class="navbar-toggler-icon"></span>
+			</button>
+			<div class="collapse navbar-collapse" id="navbarNav">
+				<ul class="navbar-nav">
+					<li class="nav-item active" id="contract">
+						<a class="nav-link" href="#"
+							>Contract <span class="sr-only">(current)</span></a
+						>
+					</li>
+					<li class="nav-item" id="airline">
+						<a class="nav-link" href="#">For Airlines</a>
+					</li>
+					<li class="nav-item" id="passenger">
+						<a class="nav-link" href="#">For Passengers</a>
+					</li>
+					<li class="nav-item" id="credits">
+						<a class="nav-link" href="#">Payout</a>
+					</li>
+				</ul>
+			</div>
+		</nav>
 
-<body>
+		<div
+			class="container center"
+			id="contract-container"
+			style="display: block"
+		>
+			<div class="row">
+				<div class="col-12">
+					<div id="display-wrapper"></div>
+				</div>
+			</div>
+		</div>
 
-    <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
-        <a class="navbar-brand" href="#">FlightSurety</a>
-        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarsExampleDefault" aria-controls="navbarsExampleDefault"
-            aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-    </nav>
+		<div class="container center" id="airline-container" style="display: block">
+			<div class="row">
+				<div class="col-12">
+					<h2>Register Flight</h2>
+					<form>
+						<div class="form-group">
+							<label class="form">Airline Address (0x)</label>
+							<input type="text" class="form-control" id="rf-airline-address" />
+						</div>
+						<div class="form-group">
+							<label class="form">Flight No.</label>
+							<input type="text" class="form-control" id="rf-flight-no" />
+						</div>
+						<div class="form-group">
+							<label class="form">Timestamp</label>
+							<input type="text" class="form-control" id="rf-timestamp" />
+						</div>
+						<btn class="btn btn-primary top-20" id="register-flight"
+							>Register</btn
+						>
+					</form>
+				</div>
+			</div>
+		</div>
 
-    <main class="container">
+		<div
+			class="container center"
+			id="passenger-container"
+			style="display: block"
+		>
+			<div class="row">
+				<div class="col-12">
+					<div id="display-wrapper"></div>
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-12">
+					<h2>Buy Insurance</h2>
+					<form>
+						<div class="form-group">
+							<label class="form">Airline Address (0x)</label>
+							<input type="text" class="form-control" id="bi-airline-address" />
+						</div>
+						<div class="form-group">
+							<label class="form">Flight No.</label>
+							<input type="text" class="form-control" id="bi-flight-no" />
+						</div>
+						<div class="form-group">
+							<label class="form">Timestamp</label>
+							<input type="text" class="form-control" id="bi-timestamp" />
+						</div>
+						<div class="form-group">
+							<label class="form">Value (eth)</label>
+							<input type="text" class="form-control" id="bi-eth" />
+						</div>
+						<btn class="btn btn-primary" id="buy-insurance">Buy</btn>
+					</form>
+				</div>
+			</div>
 
-        <div id="display-wrapper" class="top-20">
-        </div>
-        <div class="row top-20">
-            <label class="form">Flight</label> <input type="text" id="flight-number"> <btn class="btn btn-primary" id="submit-oracle">Submit to Oracles</btn>
-        </div>
-    </main>
+			<div class="row top-20">
+				<div class="col-12">
+					<h2>Check Flight Status</h2>
+					<form>
+						<div class="form-group">
+							<label class="form">Flight No.</label>
+							<input type="text" class="form-control" id="cfs-flight-no" />
+						</div>
+						<btn class="btn btn-primary" id="submit-oracle"
+							>Submit to Oracles</btn
+						>
+					</form>
+				</div>
+			</div>
+		</div>
 
-</body>
+		<div class="container center" id="credits-container" style="display: block">
+			<div class="row">
+				<div class="col-12">
+					<div id="display-wrapper"></div>
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-12">
+					<h2>Check Credits</h2>
+					<form>
+						<div class="form-group">
+							<label class="form">Address (0x)</label>
+							<input type="text" class="form-control" id="cd-address" />
+						</div>
+						<btn class="btn btn-primary" id="check-credits">Check</btn>
+					</form>
+				</div>
+			</div>
 
+			<div class="row top-20">
+				<div class="col-12">
+					<h2>Withdraw Credits</h2>
+					<form>
+						<div class="form-group">
+							<label class="form">Address (0x)</label>
+							<input type="text" class="form-control" id="cdw-address" />
+						</div>
+						<btn class="btn btn-primary" id="withdraw-credits">Withdraw</btn>
+					</form>
+				</div>
+			</div>
+		</div>
+	</body>
 </html>

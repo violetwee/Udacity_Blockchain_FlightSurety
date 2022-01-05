@@ -385,7 +385,7 @@ contract FlightSuretyData {
         uint256 timestamp
     ) external view requireIsOperational returns (bool) {
         bytes32 key = getFlightKey(airline, flightNo, timestamp);
-        // return key;
+
         return flights[key].isRegistered;
     }
 
