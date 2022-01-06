@@ -64,19 +64,51 @@
 		<div class="container center" id="airline-container" style="display: block">
 			<div class="row">
 				<div class="col-12">
+					<div id="display-wrapper"></div>
+				</div>
+			</div>
+			<div class="row">
+				<div class="col-12">
 					<h2>Register Flight</h2>
 					<form>
 						<div class="form-group">
 							<label class="form">Airline Address (0x)</label>
-							<input type="text" class="form-control" id="rf-airline-address" />
+							<input
+								type="text"
+								class="form-control"
+								id="rf-airline-address"
+								value="0x9e20893d3AB31aC6206872a6d21DF7cc078690d2"
+							/>
 						</div>
 						<div class="form-group">
 							<label class="form">Flight No.</label>
-							<input type="text" class="form-control" id="rf-flight-no" />
+							<input
+								type="text"
+								class="form-control"
+								id="rf-flight-no"
+								value="SQ980"
+							/>
 						</div>
 						<div class="form-group">
-							<label class="form">Timestamp</label>
-							<input type="text" class="form-control" id="rf-timestamp" />
+							<label class="form">Departure From</label>
+							<input
+								type="text"
+								class="form-control"
+								id="rf-from"
+								value="SIN"
+							/>
+						</div>
+						<div class="form-group">
+							<label class="form">Arrival At</label>
+							<input type="text" class="form-control" id="rf-to" value="BKK" />
+						</div>
+						<div class="form-group">
+							<label class="form">Departure Time</label>
+							<input
+								type="datetime-local"
+								class="form-control"
+								id="rf-datetime"
+							/>
 						</div>
 						<btn class="btn btn-primary top-20" id="register-flight"
 							>Register</btn

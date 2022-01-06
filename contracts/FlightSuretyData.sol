@@ -264,13 +264,16 @@ contract FlightSuretyData {
         external
         payable
         requireIsOperational
+        returns (bool)
     {
         require(
             registeredAirlines[airlineAddress].isRegistered,
             "Airline is not registered yet"
         );
         registeredAirlines[airlineAddress].isFunded = true;
-        registeredAirlines[airlineAddress].funds = amount;
+        registeredAirlines[airlineAddress].funds += amount;
+
+        return registeredAirlines[airlineAddress].isFunded;
     }
 
     /*                                    PASSENGER FUNCTIONS                                   */

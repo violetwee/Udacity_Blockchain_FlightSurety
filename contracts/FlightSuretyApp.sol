@@ -185,16 +185,25 @@ contract FlightSuretyApp {
      * @dev Add funds to an airline's account
      *
      */
-    function fund() external payable requireIsOperational {
+    function fund() external payable requireIsOperational returns (bool) {
         require(
             msg.value >= AIRLINE_REGISTRATION_FEE,
             "Insufficient funds. 10 ether required"
         );
 
         address(uint160(address(dataContract))).transfer(msg.value);
-        dataContract.fund(msg.sender, msg.value);
+        bool isFunded = dataContract.fund(msg.sender, msg.value);
 
         emit AirlineFunded(msg.sender);
+        return isFunded;
+    }
+
+    function getFundsForAirline(address airlineAddress)
+        external
+        view
+        returns (uint256)
+    {
+        dataContract.getFundsForAirline(airlineAddress);
     }
 
     /**
@@ -475,7 +484,10 @@ contract FlightSuretyDataContract {
 
     function processFlightStatus(bytes32 flightKey, uint8 statusCode) external;
 
-    function fund(address airlineAddress, uint256 amount) external payable;
+    function fund(address airlineAddress, uint256 amount)
+        external
+        payable
+        returns (bool);
 
     // Passengers
     function buy(
