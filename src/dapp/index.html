@@ -134,35 +134,49 @@
 					<form>
 						<div class="form-group">
 							<label class="form">Airline Address (0x)</label>
-							<input type="text" class="form-control" id="bi-airline-address" />
+							<input
+								type="text"
+								class="form-control"
+								id="bi-airline-address"
+								value="0x9e20893d3AB31aC6206872a6d21DF7cc078690d2"
+								required
+							/>
 						</div>
 						<div class="form-group">
 							<label class="form">Flight No.</label>
-							<input type="text" class="form-control" id="bi-flight-no" />
+							<input
+								type="text"
+								class="form-control"
+								id="bi-flight-no"
+								value="SQ980"
+								required
+							/>
 						</div>
 						<div class="form-group">
-							<label class="form">Timestamp</label>
-							<input type="text" class="form-control" id="bi-timestamp" />
+							<label class="form">Departure Time</label>
+							<input
+								type="datetime-local"
+								class="form-control"
+								id="bi-datetime"
+								required
+							/>
 						</div>
 						<div class="form-group">
 							<label class="form">Value (eth)</label>
-							<input type="text" class="form-control" id="bi-eth" />
+							<input
+								type="number"
+								class="form-control"
+								id="bi-eth"
+								min="0.000001"
+								max="1"
+								value="1"
+								required
+							/>
 						</div>
-						<btn class="btn btn-primary" id="buy-insurance">Buy</btn>
-					</form>
-				</div>
-			</div>
-
-			<div class="row top-20">
-				<div class="col-12">
-					<h2>Check Flight Status</h2>
-					<form>
-						<div class="form-group">
-							<label class="form">Flight No.</label>
-							<input type="text" class="form-control" id="cfs-flight-no" />
-						</div>
+						<btn class="btn btn-primary" id="buy-insurance">Buy Insurance</btn>
+						<btn class="btn btn-primary" id="is-insured">Is Insured?</btn>
 						<btn class="btn btn-primary" id="submit-oracle"
-							>Submit to Oracles</btn
+							>Check Flight Status</btn
 						>
 					</form>
 				</div>
@@ -177,25 +191,19 @@
 			</div>
 			<div class="row">
 				<div class="col-12">
-					<h2>Check Credits</h2>
+					<h2>Credits</h2>
 					<form>
 						<div class="form-group">
 							<label class="form">Address (0x)</label>
-							<input type="text" class="form-control" id="cd-address" />
+							<input
+								type="text"
+								class="form-control"
+								id="cd-address"
+								required
+								value="0xe88130ebAbb5f9789012bde73AEe12160db9A958"
+							/>
 						</div>
 						<btn class="btn btn-primary" id="check-credits">Check</btn>
-					</form>
-				</div>
-			</div>
-
-			<div class="row top-20">
-				<div class="col-12">
-					<h2>Withdraw Credits</h2>
-					<form>
-						<div class="form-group">
-							<label class="form">Address (0x)</label>
-							<input type="text" class="form-control" id="cdw-address" />
-						</div>
 						<btn class="btn btn-primary" id="withdraw-credits">Withdraw</btn>
 					</form>
 				</div>

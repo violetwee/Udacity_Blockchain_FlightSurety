@@ -5,9 +5,6 @@ import './flightsurety.css';
 
 
 (async () => {
-
-
-
     let result = null;
 
     let contract = new Contract('localhost', () => {
@@ -54,7 +51,7 @@ import './flightsurety.css';
             let departureTime = DOM.elid("rf-datetime").value;
             let timestamp = new Date(departureTime).valueOf() / 1000;
 
-            console.log('details', airlineAddress, flightNo, departureFrom, arrivalAt, timestamp);
+            console.log('register-flight', airlineAddress, flightNo, departureFrom, arrivalAt, timestamp);
 
             contract.registerFlight(airlineAddress, flightNo, departureFrom, arrivalAt, timestamp, (error, result) => {
                 if (error) console.log(error);
@@ -65,22 +62,82 @@ import './flightsurety.css';
         });
 
         // For Passengers > Buy insurance
+        DOM.elid("buy-insurance").addEventListener("click", async () => {
+            let airlineAddress = DOM.elid("bi-airline-address").value;
+            let flightNo = DOM.elid("bi-flight-no").value;
+            let departureTime = DOM.elid("bi-datetime").value;
+            let timestamp = new Date(departureTime).valueOf() / 1000;
+            let amount = DOM.elid("bi-eth").value;
+
+            console.log('buy-insurance', airlineAddress, flightNo, timestamp, amount);
+
+            contract.buyInsurance(airlineAddress, flightNo, timestamp, amount, (error, result) => {
+                if (error) console.log(error);
+                console.log('result', result);
+
+                display('Insurance', `Flight No: ${flightNo}`, [{ label: 'Is Purchased?', error: error, value: error ? false : true }], 'passenger-container');
+            });
+        });
+
+        DOM.elid("is-insured").addEventListener("click", async () => {
+            let airlineAddress = DOM.elid("bi-airline-address").value;
+            let flightNo = DOM.elid("bi-flight-no").value;
+            let departureTime = DOM.elid("bi-datetime").value;
+            let timestamp = new Date(departureTime).valueOf() / 1000;
+
+            console.log('is-insured', airlineAddress, flightNo, timestamp);
+
+            contract.isInsured(airlineAddress, flightNo, timestamp, (error, result) => {
+                console.log('result', result);
+                display('Is Insured', 'Check insurance status', [{ label: 'Fetch Insurance Status', error: error, value: result }], 'passenger-container');
+            });
+        })
 
         // For Passengers > Submit oracle
         // User-submitted transaction
         DOM.elid('submit-oracle').addEventListener('click', () => {
-            console.log('submit oracle');
-            let flight = DOM.elid('cfs-flight-no').value;
+            let airlineAddress = DOM.elid("bi-airline-address").value;
+            let flightNo = DOM.elid("bi-flight-no").value;
+            let departureTime = DOM.elid("bi-datetime").value;
+            let timestamp = new Date(departureTime).valueOf() / 1000;
+
+            console.log('submit-oracle', airlineAddress, flightNo, timestamp);
+
             // Write transaction
-            contract.fetchFlightStatus(flight, (error, result) => {
+            contract.fetchFlightStatus(airlineAddress, flightNo, timestamp, (error, result) => {
+                console.log('error', error);
+                console.log('result', result);
                 display('Oracles', 'Trigger oracles', [{ label: 'Fetch Flight Status', error: error, value: result.flight + ' ' + result.timestamp }], 'passenger-container');
             });
         })
 
         // For Passengers > Check credit balance
+        DOM.elid("check-credits").addEventListener("click", async () => {
+            let passengerAddress = DOM.elid("cd-address").value;
+
+            console.log('check-credits', passengerAddress);
+
+            contract.getPassengerCredits(passengerAddress, (error, result) => {
+                if (error) console.log(error);
+                console.log('result', result);
+
+                display('Payout Credits', `Check credit balance`, [{ label: 'Credits', error: error, value: result }], 'credits-container');
+            });
+        });
 
         // For Passengers > Withdraw credit balance
+        DOM.elid("withdraw-credits").addEventListener("click", async () => {
+            let passengerAddress = DOM.elid("cd-address").value;
 
+            console.log('withdraw-credits', passengerAddress);
+
+            contract.withdrawCredits(passengerAddress, (error, result) => {
+                if (error) console.log(error);
+                console.log('result', result);
+
+                display('Payout Credits', `Withdraw credit balance`, [{ label: 'Credits', error: error, value: result }], 'credits-container');
+            });
+        });
     });
 })();
 

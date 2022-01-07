@@ -37,7 +37,9 @@ contract FlightSuretyData {
         uint256 payoutPercentage;
         bool isPayoutCredited;
     }
-    mapping(bytes32 => Insurance[]) public flightKeyInsurance; // key=>Insurance[], flights that passengers have bought insurance
+    // mapping(bytes32 => Insurance[]) public flightKeyInsurance;
+    mapping(bytes32 => Insurance) public passengerInsurance; // (encoded passenger+flightKey => Insurance)
+
     mapping(address => uint256) public passengerCredits; // passenger => insurance payouts in eth, pending withdrawal
 
     struct Flight {
@@ -48,6 +50,7 @@ contract FlightSuretyData {
         string departureFrom;
         string arrivalAt;
         bool isRegistered;
+        address[] insurees;
     }
     mapping(bytes32 => Flight) public flights; // key => Flight
     uint256 public totalRegisteredFlights = 0;
@@ -284,37 +287,62 @@ contract FlightSuretyData {
      */
     function buy(
         address passenger,
-        bytes32 key,
+        address airline,
+        string flightNo,
+        uint256 timestamp,
         uint256 cost
     ) external payable requireIsOperational {
-        Insurance memory insurance = Insurance({
+        bytes32 key = getFlightKey(airline, flightNo, timestamp);
+        bytes32 insuranceKey = keccak256(abi.encodePacked(passenger, key));
+
+        passengerInsurance[insuranceKey] = Insurance({
             passenger: passenger,
             insuranceCost: cost,
             payoutPercentage: PAYOUT_PERCENTAGE,
             isPayoutCredited: false
         });
-        flightKeyInsurance[key].push(insurance);
+
+        flights[key].insurees.push(passenger);
+    }
+
+    function isPassengerInsured(
+        address passenger,
+        address airline,
+        string flightNo,
+        uint256 timestamp
+    ) external view requireIsOperational returns (bool) {
+        bytes32 key = getFlightKey(airline, flightNo, timestamp);
+        bytes32 insuranceKey = keccak256(abi.encodePacked(passenger, key));
+
+        return passengerInsurance[insuranceKey].passenger == passenger;
     }
 
     /**
-     *  @dev Credits payouts to insurees
+     *  @dev Credits payouts to insuree
      */
-    function creditInsurees(bytes32 key) internal requireIsOperational {
-        // loop through all insurees and perform credit
-        for (uint256 idx = 0; idx < flightKeyInsurance[key].length; idx++) {
-            Insurance memory insurance = flightKeyInsurance[key][idx];
+    function creditInsuree(address passenger, bytes32 key)
+        internal
+        requireIsOperational
+    {
+        bytes32 insuranceKey = keccak256(abi.encodePacked(passenger, key));
 
-            if (!insurance.isPayoutCredited) {
-                insurance.isPayoutCredited = true;
-                // calculate payout amount
-                uint256 amount = insurance
-                    .insuranceCost
-                    .mul(insurance.payoutPercentage)
-                    .div(100);
+        require(
+            passengerInsurance[insuranceKey].passenger == passenger,
+            "Passenger does not own insurance for this flight"
+        );
+        require(
+            !passengerInsurance[insuranceKey].isPayoutCredited,
+            "Passenger has already been credited"
+        );
 
-                passengerCredits[insurance.passenger] += amount;
-            }
-        }
+        // calculate payout
+        uint256 amount = passengerInsurance[insuranceKey]
+            .insuranceCost
+            .mul(passengerInsurance[insuranceKey].payoutPercentage)
+            .div(100);
+
+        passengerInsurance[insuranceKey].isPayoutCredited = true;
+        passengerCredits[passenger] += amount;
     }
 
     function getPassengerCredits(address passenger)
@@ -332,12 +360,12 @@ contract FlightSuretyData {
     function pay(address passenger) external payable requireIsOperational {
         require(
             passengerCredits[passenger] > 0,
-            "Passenger do not have credits to withdraw"
+            "Passenger does not have credits to withdraw"
         );
 
         uint256 credits = passengerCredits[passenger];
         passengerCredits[passenger] = 0;
-        address(uint160(passenger)).transfer(credits);
+        passenger.transfer(credits);
     }
 
     /*                                    FLIGHT FUNCTIONS                                      */
@@ -375,9 +403,10 @@ contract FlightSuretyData {
             flightNo: flightNo,
             departureFrom: departureFrom,
             arrivalAt: arrivalAt,
-            isRegistered: true
+            isRegistered: true,
+            insurees: new address[](0)
         });
-        // flights[key] = newFlight;
+
         ++totalRegisteredFlights;
         return (key, flights[key].isRegistered);
     }
@@ -404,16 +433,23 @@ contract FlightSuretyData {
      * @dev Save flight status info
      *
      */
-    function processFlightStatus(bytes32 key, uint8 statusCode)
-        external
-        requireIsOperational
-    {
+    function processFlightStatus(
+        address airline,
+        string flightNo,
+        uint256 timestamp,
+        uint8 statusCode
+    ) external requireIsOperational {
+        bytes32 key = getFlightKey(airline, flightNo, timestamp);
+
         if (flights[key].statusCode == STATUS_CODE_UNKNOWN) {
             flights[key].statusCode = statusCode;
 
             if (statusCode == STATUS_CODE_LATE_AIRLINE) {
                 // airline is late, credit insured amount to passengers
-                creditInsurees(key);
+                uint256 numInsurees = flights[key].insurees.length;
+                for (uint256 i = 0; i < numInsurees; i++) {
+                    creditInsuree(flights[key].insurees[i], key);
+                }
             }
         }
     }

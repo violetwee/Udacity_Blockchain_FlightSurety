@@ -12,9 +12,9 @@ const STATUS_CODES = {
   UNKNOWN: 0,
   ON_TIME: 10,
   LATE_AIRLINE: 20,
-  LATE_WEATHER: 30,
-  LATE_TECHNICAL: 40,
-  LATE_OTHER: 50
+  // LATE_WEATHER: 30,
+  // LATE_TECHNICAL: 40,
+  // LATE_OTHER: 50
 };
 
 const NUM_ORACLES = 25;
@@ -33,6 +33,7 @@ flightSuretyApp.events.OracleRequest({
   // loop through all registered oracles
   for (let i = 0; i < oracles.length; i++) {
     // determine oracles to use based on oracle indexes
+
     if (oracles[i].indexes.includes(index)) {
       // call submitOracleResponse with a random status code
       let randomStatusCode = getRandomStatusCode();
@@ -46,6 +47,15 @@ flightSuretyApp.events.OracleRequest({
     }
   }
 });
+
+flightSuretyApp.events.FlightStatusInfo({
+  fromBlock: 0
+}, function (error, event) {
+  if (error) console.log(error)
+
+  let { airline, flight, timestamp, status } = event.returnValues;
+  console.log(`[FlightInfoStatus] airline=${airline}, flight=${flight}, timestamp=${timestamp}, statusCode=${status}`);
+})
 
 const app = express();
 app.get('/api', (req, res) => {

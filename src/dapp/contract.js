@@ -11,12 +11,6 @@ export default class Contract {
         this.web3 = new Web3(new Web3.providers.HttpProvider(config.url));
         this.flightSuretyApp = new this.web3.eth.Contract(FlightSuretyApp.abi, config.appAddress);
 
-        // let web3Provider = new Web3.providers.WebsocketProvider(this.config.url.replace('http', 'ws'));
-        // this.web3 = new Web3(web3Provider);
-        // this.flightSuretyApp = TruffleContract(FlightSuretyApp);
-        // this.flightSuretyApp.setProvider(web3Provider);
-
-        console.log('config', config.url, config.appAddress);
         this.initialize(callback);
         this.owner = null;
         this.firstAirline = null;
@@ -34,34 +28,14 @@ export default class Contract {
             this.firstAirline = accts[1];
             let counter = 2;
 
-
-
             // fund the first airline
             this.fundAirline(this.firstAirline, DEFAULT_FUND_AMOUNT, (error, res) => {
-                console.log('fund ---> ', this.firstAirline);
-                console.log('fundAirline err', error);
-                console.log('fundAirline res', res);
-                this.getFundsForAirline(this.firstAirline, (error, res) => {
-                    console.log('getFundsForAirline err', error);
-                    console.log('getFundsForAirline res', res);
-                })
-
+                if (error) console.log('fundAirline: ', error);
             })
 
             while (this.airlines.length < 5) {
                 let acc = accts[counter++];
                 this.airlines.push(acc);
-
-                // this.registerAirline(acc, this.firstAirline, (error, res) => {
-                //     console.log('register ---> ', acc);
-                //     console.log('registerAirline err', error);
-                //     console.log('registerAirline res', res);
-                //     this.fundAirline(acc, DEFAULT_FUND_AMOUNT, (error, res) => {
-                //         console.log('fund ---> ', acc);
-                //         console.log('fundAirline err', error);
-                //         console.log('fundAirline res', res);
-                //     })
-                // })
             }
 
             while (this.passengers.length < 5) {
@@ -81,12 +55,12 @@ export default class Contract {
             .call({ from: self.owner }, callback);
     }
 
-    fetchFlightStatus(flight, callback) {
+    fetchFlightStatus(airline, flightNo, timestamp, callback) {
         let self = this;
         let payload = {
-            airline: self.airlines[0],
-            flight: flight,
-            timestamp: Math.floor(Date.now() / 1000)
+            airline: airline,
+            flight: flightNo,
+            timestamp: timestamp
         }
         self.flightSuretyApp.methods
             .fetchFlightStatus(payload.airline, payload.flight, payload.timestamp)
@@ -95,16 +69,7 @@ export default class Contract {
             });
     }
 
-    // Initialise an airline for demo/testing purposes
-    registerAirline(address, caller, callback) {
-        let self = this;
-
-        self.flightSuretyApp.methods
-            .registerAirline(address)
-            .call({ from: caller }, callback);
-    }
-
-    // Fund airline so that it can register flights
+    // Fund first airline so that it can register flights
     fundAirline(address, amount, callback) {
         let self = this;
 
@@ -112,6 +77,7 @@ export default class Contract {
             .fund()
             .send({ from: address, value: amount, gas: 4600000 }, callback);
     }
+
     getFundsForAirline(address, callback) {
         let self = this;
 
@@ -120,11 +86,49 @@ export default class Contract {
             .call({ from: address }, callback);
     }
 
+
     registerFlight(airline, flightNo, from, to, timestamp, callback) {
         let self = this;
 
         self.flightSuretyApp.methods
             .registerFlight(airline, flightNo, from, to, timestamp)
             .call({ from: airline }, callback);
+    }
+
+    buyInsurance(airline, flightNo, timestamp, amount, callback) {
+        let self = this;
+
+        amount = this.web3.utils.toWei(amount, 'ether');
+        console.log('buy insurance: ', this.passengers[0], amount);
+
+        self.flightSuretyApp.methods
+            .buyInsurance(airline, flightNo, timestamp)
+            .send({ from: this.passengers[0], value: amount, gas: 4600000 }, callback);
+    }
+
+    isInsured(airline, flightNo, timestamp, callback) {
+        let self = this;
+
+        self.flightSuretyApp.methods
+            .isPassengerInsured(airline, flightNo, timestamp)
+            .call({ from: this.passengers[0] }, callback);
+    }
+
+    getPassengerCredits(address, callback) {
+        let self = this;
+        console.log('get passenger credits', address);
+
+        self.flightSuretyApp.methods
+            .getPassengerCredits(address)
+            .call(callback);
+    }
+
+    withdrawCredits(address, callback) {
+        let self = this;
+        console.log('withdraw credits: ', address);
+
+        self.flightSuretyApp.methods
+            .withdrawCredits()
+            .send({ from: address, gas: 4600000 }, callback);
     }
 }

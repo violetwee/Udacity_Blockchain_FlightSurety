@@ -239,9 +239,13 @@ contract FlightSuretyApp {
         string flightNo,
         uint256 timestamp,
         uint8 statusCode
-    ) internal {
-        bytes32 flightKey = getFlightKey(airline, flightNo, timestamp);
-        dataContract.processFlightStatus(flightKey, statusCode);
+    ) internal requireIsOperational {
+        dataContract.processFlightStatus(
+            airline,
+            flightNo,
+            timestamp,
+            statusCode
+        );
     }
 
     // Generate a request for oracles to fetch flight information
@@ -276,8 +280,35 @@ contract FlightSuretyApp {
             "Insurance fee exceeds 1 ether"
         );
 
-        bytes32 flightKey = getFlightKey(airline, flightNo, timestamp);
-        dataContract.buy(msg.sender, flightKey, msg.value);
+        address(uint160(address(dataContract))).transfer(msg.value);
+        dataContract.buy(msg.sender, airline, flightNo, timestamp, msg.value);
+    }
+
+    function isPassengerInsured(
+        address airline,
+        string flightNo,
+        uint256 timestamp
+    ) external view returns (bool) {
+        return
+            dataContract.isPassengerInsured(
+                msg.sender,
+                airline,
+                flightNo,
+                timestamp
+            );
+    }
+
+    function getPassengerCredits(address passenger)
+        external
+        view
+        requireIsOperational
+        returns (uint256)
+    {
+        return dataContract.getPassengerCredits(passenger);
+    }
+
+    function withdrawCredits() external payable requireIsOperational {
+        dataContract.pay(msg.sender);
     }
 
     // region ORACLE MANAGEMENT
@@ -482,7 +513,12 @@ contract FlightSuretyDataContract {
         uint256 timestamp
     ) external returns (bytes32, bool);
 
-    function processFlightStatus(bytes32 flightKey, uint8 statusCode) external;
+    function processFlightStatus(
+        address airline,
+        string flightNo,
+        uint256 timestamp,
+        uint8 statusCode
+    ) external;
 
     function fund(address airlineAddress, uint256 amount)
         external
@@ -492,9 +528,24 @@ contract FlightSuretyDataContract {
     // Passengers
     function buy(
         address passenger,
-        bytes32 flightKey,
+        address airline,
+        string flightNo,
+        uint256 timestamp,
         uint256 cost
     ) external payable;
+
+    function isPassengerInsured(
+        address passenger,
+        address airline,
+        string flightNo,
+        uint256 timestamp
+    ) external view returns (bool);
+
+    //check credit balance
+    function getPassengerCredits(address passenger)
+        external
+        view
+        returns (uint256);
 
     // withdraw credits from account
     function pay(address passenger) external payable;
