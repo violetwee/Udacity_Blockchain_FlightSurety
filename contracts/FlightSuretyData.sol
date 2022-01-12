@@ -389,7 +389,7 @@ contract FlightSuretyData {
         returns (bytes32, bool)
     {
         require(
-            flights[key].airline == address(0),
+            !flights[key].isRegistered,
             "Flight has already been registered"
         );
 

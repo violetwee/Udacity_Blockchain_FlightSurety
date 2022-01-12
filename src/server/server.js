@@ -12,12 +12,14 @@ const STATUS_CODES = {
   UNKNOWN: 0,
   ON_TIME: 10,
   LATE_AIRLINE: 20,
-  // LATE_WEATHER: 30,
-  // LATE_TECHNICAL: 40,
-  // LATE_OTHER: 50
+  LATE_WEATHER: 30,
+  LATE_TECHNICAL: 40,
+  LATE_OTHER: 50
 };
 
 const NUM_ORACLES = 25;
+let ORACLE_ACCOUNT_INDEX = 10;
+
 let accounts = [];
 let oracles = [];
 
@@ -80,7 +82,7 @@ function getRandomStatusCode() {
 
 function registerOracles(numOracles) {
   console.log(`-- Register ${numOracles} Oracle(s) --`);
-  let ORACLE_ACCOUNT_INDEX = 10;
+
 
   for (let i = 0; i < numOracles; i++) {
     let acc = accounts[ORACLE_ACCOUNT_INDEX + i];

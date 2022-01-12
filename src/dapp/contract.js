@@ -1,7 +1,6 @@
 import FlightSuretyApp from '../../build/contracts/FlightSuretyApp.json';
 import Config from './config.json';
 import Web3 from 'web3';
-// const TruffleContract = require("@truffle/contract");
 
 export default class Contract {
 
@@ -31,6 +30,8 @@ export default class Contract {
             // fund the first airline
             this.fundAirline(this.firstAirline, DEFAULT_FUND_AMOUNT, (error, res) => {
                 if (error) console.log('fundAirline: ', error);
+
+                console.log('fundAirline', res);
             })
 
             while (this.airlines.length < 5) {
@@ -87,12 +88,24 @@ export default class Contract {
     }
 
 
-    registerFlight(airline, flightNo, from, to, timestamp, callback) {
+    registerFlight(airline, flightNo, departureFrom, arrivalAt, timestamp, callback) {
         let self = this;
 
+        console.log('registerFlight', airline, flightNo, departureFrom, arrivalAt, timestamp);
+
         self.flightSuretyApp.methods
-            .registerFlight(airline, flightNo, from, to, timestamp)
+            .registerFlight(airline, flightNo, departureFrom, arrivalAt, timestamp)
             .call({ from: airline }, callback);
+    }
+
+    isRegisteredFlight(airline, flightNo, timestamp, callback) {
+        let self = this;
+
+        console.log('isRegisteredFlight', airline, flightNo, timestamp);
+
+        self.flightSuretyApp.methods
+            .isRegisteredFlight(airline, flightNo, timestamp)
+            .call(callback);
     }
 
     buyInsurance(airline, flightNo, timestamp, amount, callback) {

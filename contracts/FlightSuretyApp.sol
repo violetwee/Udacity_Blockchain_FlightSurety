@@ -203,7 +203,7 @@ contract FlightSuretyApp {
         view
         returns (uint256)
     {
-        dataContract.getFundsForAirline(airlineAddress);
+        return dataContract.getFundsForAirline(airlineAddress);
     }
 
     /**
@@ -227,6 +227,14 @@ contract FlightSuretyApp {
 
         emit FlightAdded(flightNo);
         return (key, isRegistered);
+    }
+
+    function isRegisteredFlight(
+        address airline,
+        string flightNo,
+        uint256 timestamp
+    ) external view requireIsOperational returns (bool) {
+        return dataContract.isRegisteredFlight(airline, flightNo, timestamp);
     }
 
     /**
@@ -512,6 +520,12 @@ contract FlightSuretyDataContract {
         string arrivalAt,
         uint256 timestamp
     ) external returns (bytes32, bool);
+
+    function isRegisteredFlight(
+        address airline,
+        string flightNo,
+        uint256 timestamp
+    ) external view returns (bool);
 
     function processFlightStatus(
         address airline,

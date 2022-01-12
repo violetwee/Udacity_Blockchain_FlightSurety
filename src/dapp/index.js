@@ -43,6 +43,19 @@ import './flightsurety.css';
 
 
         // For Airlines > Register flights
+        DOM.elid("is-airline-funded").addEventListener("click", async () => {
+            let airlineAddress = DOM.elid("rf-airline-address").value;
+
+            console.log('is-airline-funded', airlineAddress);
+
+            contract.getFundsForAirline(airlineAddress, (error, result) => {
+                if (error) console.log(error);
+
+                console.log('getFundsForAirline', result);
+                display('Airline Funds', `Funds: ${result}`, [{ label: 'Funds', error: error, value: result }], 'airline-container');
+
+            })
+        });
         DOM.elid("register-flight").addEventListener("click", async () => {
             let airlineAddress = DOM.elid("rf-airline-address").value;
             let flightNo = DOM.elid("rf-flight-no").value;
@@ -56,9 +69,26 @@ import './flightsurety.css';
             contract.registerFlight(airlineAddress, flightNo, departureFrom, arrivalAt, timestamp, (error, result) => {
                 if (error) console.log(error);
 
-                let { key, isRegistered } = result;
-                display('Flight Registration', `Flight No: ${flightNo}`, [{ label: 'Is Registered?', error: error, value: isRegistered }], 'airline-container');
+                console.log('result', result);
+                display('Flight Registration', `Flight No: ${flightNo}`, [{ label: 'Submitted', error: error, value: result.isRegistered }], 'airline-container');
             });
+        });
+
+        DOM.elid("is-registered-flight").addEventListener("click", async () => {
+            let airlineAddress = DOM.elid("rf-airline-address").value;
+            let flightNo = DOM.elid("rf-flight-no").value;
+            let departureTime = DOM.elid("rf-datetime").value;
+            let timestamp = new Date(departureTime).valueOf() / 1000;
+
+            console.log('is-registered-flight', airlineAddress, flightNo, timestamp);
+
+            contract.isRegisteredFlight(airlineAddress, flightNo, timestamp, (error, result) => {
+                if (error) console.log(error);
+
+                console.log('result', result);
+
+                display('Flight Registration', `Flight No: ${flightNo}`, [{ label: 'Is Registered?', error: error, value: result }], 'airline-container');
+            })
         });
 
         // For Passengers > Buy insurance
@@ -74,6 +104,8 @@ import './flightsurety.css';
             contract.buyInsurance(airlineAddress, flightNo, timestamp, amount, (error, result) => {
                 if (error) console.log(error);
                 console.log('result', result);
+
+
 
                 display('Insurance', `Flight No: ${flightNo}`, [{ label: 'Is Purchased?', error: error, value: error ? false : true }], 'passenger-container');
             });
